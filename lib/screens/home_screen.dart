@@ -1,0 +1,152 @@
+import 'package:flutter/material.dart';
+import 'package:color_splice/screens/game_screen.dart';
+import 'package:flame_audio/flame_audio.dart';
+import 'package:flutter/services.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isAudioInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAudio();
+  }
+
+  Future<void> _initializeAudio() async {
+    try {
+      // Initialize BGM
+      await FlameAudio.bgm.initialize();
+      setState(() {
+        _isAudioInitialized = true;
+      });
+    } catch (e) {
+      debugPrint('Error initializing audio: $e');
+    }
+  }
+
+  Future<void> _startGame() async {
+    if (_isAudioInitialized) {
+      try {
+        await FlameAudio.bgm.play('ss1.mp3');
+      } catch (e) {
+        debugPrint('Error playing audio: $e');
+      }
+    }
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const GameScreen()),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_isAudioInitialized) {
+      FlameAudio.bgm.stop();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/poster.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate responsive sizes based on screen dimensions
+            final screenWidth = constraints.maxWidth;
+            final screenHeight = constraints.maxHeight;
+            
+            // Calculate font sizes (adjust these multipliers as needed)
+            final titleFontSize = screenWidth * 0.15; // 15% of screen width
+            final buttonFontSize = screenWidth * 0.06; // 6% of screen width
+            
+            // Calculate button padding
+            final buttonHorizontalPadding = screenWidth * 0.1; // 10% of screen width
+            final buttonVerticalPadding = screenHeight * 0.02; // 2% of screen height
+            
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Title with two different fonts
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Capico',
+                        style: TextStyle(
+                          fontFamily: 'Starbim',
+                          fontSize: titleFontSize,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.5),
+                              offset: const Offset(2, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        'Slice',
+                        style: TextStyle(
+                          fontFamily: 'Aesthetic',
+                          fontSize: titleFontSize,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.5),
+                              offset: const Offset(2, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: screenHeight * 0.05), // 5% of screen height
+                  ElevatedButton(
+                    onPressed: _startGame,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: buttonHorizontalPadding,
+                        vertical: buttonVerticalPadding,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(screenWidth * 0.05), // 5% of screen width
+                      ),
+                    ),
+                    child: Text(
+                      'Start Game',
+                      style: TextStyle(
+                        fontFamily: 'Daydream',
+                        fontSize: buttonFontSize,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+} 
