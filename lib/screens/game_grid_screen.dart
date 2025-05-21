@@ -4,6 +4,13 @@ import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart'; // Import for HapticFeedback
 
+enum CharacterType {
+  bear,
+  capico,
+  frog,
+  snake,
+}
+
 class GameGridScreen extends StatefulWidget {
   const GameGridScreen({super.key});
 
@@ -359,7 +366,7 @@ class _GameGridScreenState extends State<GameGridScreen> {
     }
 
     // Update score based on the number of characters removed
-    if (removedCount >= 3) { // Check if at least 3 characters were removed
+    if (_swipePath.length >= 3) { // Check if at least 3 characters were removed
       setState(() {
         _score += removedCount * 10; // Example scoring: 10 points per character
         // Combo logic would be added here
@@ -440,29 +447,25 @@ class _GameGridScreenState extends State<GameGridScreen> {
         }
       }
 
-      if (hasNewMatches) {
-        // Collect matched characters for removal
-        Set<List<int>> currentMatches = {};
-        for (int row = 0; row < rows; row++) {
-          for (int col = 0; col < columns; col++) {
-            if (toRemove[row][col]) {
-              currentMatches.add([row, col]);
-            }
+      // Remove all marked characters
+      int removedCount = 0;
+      for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < columns; col++) {
+          if (toRemove[row][col]) {
+            board[row][col] = null;
+            removedCount++;
           }
         }
-
-        HapticFeedback.vibrate(); // Vibrate on match
-
-        // Remove matched characters
-        for (final pos in currentMatches) {
-          board[pos[0]][pos[1]] = null;
-        }
-
-        // Process subsequent cascades
-        makeCharactersFall();
-        fillEmptySpaces();
       }
+
+      // Make characters fall and fill empty spaces after processing matches
+      makeCharactersFall();
+      fillEmptySpaces();
+
+      // Note: The while loop continues to check for new matches created by the falling and new characters.
+      if (!hasNewMatches) break; // Exit the while loop if no new matches were found
     }
+
     // After all cascades, check for possible connections
     _checkForPossibleConnections();
   }
