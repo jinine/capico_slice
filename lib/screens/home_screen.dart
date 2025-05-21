@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:color_splice/screens/game_screen.dart';
-import 'package:flame_audio/flame_audio.dart';
-import 'package:flutter/services.dart';
+import 'package:color_splice/screens/game_grid_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,48 +9,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isAudioInitialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeAudio();
-  }
-
-  Future<void> _initializeAudio() async {
-    try {
-      // Initialize BGM
-      await FlameAudio.bgm.initialize();
-      setState(() {
-        _isAudioInitialized = true;
-      });
-    } catch (e) {
-      debugPrint('Error initializing audio: $e');
-    }
-  }
-
   Future<void> _startGame() async {
-    if (_isAudioInitialized) {
-      try {
-        await FlameAudio.bgm.play('ss1.mp3');
-      } catch (e) {
-        debugPrint('Error playing audio: $e');
-      }
-    }
+    // Always navigate to GameScreen regardless of audio initialization
     if (mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const GameScreen()),
+        MaterialPageRoute(builder: (context) => const GameGridScreen()),
       );
     }
-  }
-
-  @override
-  void dispose() {
-    if (_isAudioInitialized) {
-      FlameAudio.bgm.stop();
-    }
-    super.dispose();
   }
 
   @override

@@ -63,10 +63,10 @@ flutter:
   assets:
     - assets/background.png
     - assets/poster.png
-    - assets/bear.png
-    - assets/capico.png
-    - assets/frog.png
-    - assets/snake.png
+    - assets/images/bear.png
+    - assets/images/capico.png
+    - assets/images/frog.png
+    - assets/images/snake.png
     - assets/audio/ss1.mp3
     - assets/logo1.png
     - assets/logo2.png

@@ -23,6 +23,7 @@ class Character extends SpriteComponent with HasGameRef {
 
   @override
   Future<void> onLoad() async {
+    // Retrieve the already loaded sprite from the game's image cache
     String spritePath = '';
     switch (type) {
       case CharacterType.bear:
