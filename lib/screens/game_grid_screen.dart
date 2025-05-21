@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:color_splice/game/components/character.dart'; // Import CharacterType
-import 'dart:math';
+import 'dart:math' as math;
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart'; // Import for HapticFeedback
 
 class GameGridScreen extends StatefulWidget {
   const GameGridScreen({super.key});
@@ -10,11 +12,15 @@ class GameGridScreen extends StatefulWidget {
 }
 
 class _GameGridScreenState extends State<GameGridScreen> {
-  static const int rows = 8;
-  static const int columns = 5;
+  static const int rows = 6;
+  static const int columns = 4;
 
   late List<List<CharacterType?>> board;
-  final Random _random = Random();
+  final math.Random _random = math.Random();
+  final AudioPlayer _audioPlayer = AudioPlayer(); // Initialize AudioPlayer for success sound
+  final AudioPlayer _backgroundPlayer = AudioPlayer(); // Initialize AudioPlayer for background music
+  final GlobalKey _gridKey = GlobalKey(); // Key for accessing GridView RenderBox
+  final GlobalKey _expandedKey = GlobalKey(); // Key for accessing Expanded RenderBox
 
   // Define character type and their corresponding asset paths and colors
   final Map<CharacterType, String> characterAssetPaths = {
@@ -36,11 +42,34 @@ class _GameGridScreenState extends State<GameGridScreen> {
 
   int _score = 0;
   int _highestCombo = 0; // Assuming combo logic will be added later
+  bool _isMuted = false; // State to track mute status
 
   @override
   void initState() {
     super.initState();
     initializeBoard();
+    _loadSound(); // Load the success sound
+    _startBackgroundMusic(); // Start background music
+  }
+
+  // Start background music
+  Future<void> _startBackgroundMusic() async {
+    await _backgroundPlayer.setSource(AssetSource('audio/ss1.mp3')); // Assuming background_music.mp3
+    _backgroundPlayer.setReleaseMode(ReleaseMode.loop); // Loop the music
+    _backgroundPlayer.resume(); // Start playing
+  }
+
+  // Load the sound file
+  Future<void> _loadSound() async {
+    await _audioPlayer.setSource(AssetSource('audio/success.mp3')); // Assuming success.mp3 in assets/audio
+    _audioPlayer.setReleaseMode(ReleaseMode.release); // Release resources after playback
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Dispose the success audio player
+    _backgroundPlayer.dispose(); // Dispose the background audio player
+    super.dispose();
   }
 
   void initializeBoard() {
@@ -159,33 +188,43 @@ class _GameGridScreenState extends State<GameGridScreen> {
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Highest Combo: $_highestCombo',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontFamily: 'Daydream',
+                  IconButton(
+                    icon: Icon(
+                      _isMuted ? Icons.volume_off : Icons.volume_up,
+                      color: Colors.white,
+                    ),
+                    onPressed: _toggleMute,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Highest Combo: $_highestCombo',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontFamily: 'Daydream',
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Score: $_score',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Daydream',
+                        Text(
+                          'Score: $_score',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Daydream',
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
 
             Expanded(
+              key: _expandedKey, // Assign the key to the Expanded widget
               child: SafeArea(
                 child: Center(
                   child: GestureDetector(
@@ -193,6 +232,7 @@ class _GameGridScreenState extends State<GameGridScreen> {
                     onPanUpdate: _onPanUpdate,
                     onPanEnd: _onPanEnd,
                     child: GridView.builder(
+                      key: _gridKey, // Assign the key to the GridView
                       physics: const NeverScrollableScrollPhysics(), // Disable scrolling
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
@@ -300,8 +340,7 @@ class _GameGridScreenState extends State<GameGridScreen> {
   void _onPanEnd(DragEndDetails details) {
     debugPrint('_onPanEnd called');
     if (_swipePath.length >= 3) { // Process swipe only if at least three cells are selected
-      // Process the swipe path (remove, fall, fill)
-      processSwipe();
+      processSwipe(); // Process the swipe (remove, fall, fill)
     }
 
     // Reset swipe path and current connect type
@@ -320,7 +359,7 @@ class _GameGridScreenState extends State<GameGridScreen> {
     }
 
     // Update score based on the number of characters removed
-    if (removedCount >= 3) {
+    if (removedCount >= 3) { // Check if at least 3 characters were removed
       setState(() {
         _score += removedCount * 10; // Example scoring: 10 points per character
         // Combo logic would be added here
@@ -402,16 +441,24 @@ class _GameGridScreenState extends State<GameGridScreen> {
       }
 
       if (hasNewMatches) {
-        // Remove matched characters
+        // Collect matched characters for removal
+        Set<List<int>> currentMatches = {};
         for (int row = 0; row < rows; row++) {
           for (int col = 0; col < columns; col++) {
             if (toRemove[row][col]) {
-              board[row][col] = null;
+              currentMatches.add([row, col]);
             }
           }
         }
 
-        // Make characters fall and fill empty spaces after processing matches
+        HapticFeedback.vibrate(); // Vibrate on match
+
+        // Remove matched characters
+        for (final pos in currentMatches) {
+          board[pos[0]][pos[1]] = null;
+        }
+
+        // Process subsequent cascades
         makeCharactersFall();
         fillEmptySpaces();
       }
@@ -526,22 +573,34 @@ class _GameGridScreenState extends State<GameGridScreen> {
 
   int? _getIndexFromPosition(Offset position) {
     debugPrint('_getIndexFromPosition called with position: $position');
-    final RenderBox gridRenderBox = context.findRenderObject() as RenderBox;
-    if (!gridRenderBox.paintBounds.contains(position)) {
-      debugPrint('Position outside grid bounds.');
-      return null; // Position is outside the grid
+    final RenderBox? gridRenderBox = _gridKey.currentContext?.findRenderObject() as RenderBox?; // Get RenderBox using the key
+
+    if (gridRenderBox == null) {
+      debugPrint('Position outside grid bounds or RenderBox not found.');
+      return null; // Position is outside the grid or RenderBox not available
+    }
+
+    final RenderBox? expandedRenderBox = _expandedKey.currentContext?.findRenderObject() as RenderBox?;
+    if (expandedRenderBox == null) {
+      debugPrint('Expanded RenderBox not found.');
+      return null; // Expanded RenderBox not available
     }
 
     // Get the offset of the grid from the top of the screen
-    final gridOffset = gridRenderBox.localToGlobal(Offset.zero);
+    final gridOffset = expandedRenderBox.localToGlobal(Offset.zero);
     debugPrint('Grid Offset: $gridOffset');
 
     // Adjust the touch position relative to the grid's top-left corner
     final adjustedPosition = position - gridOffset;
     debugPrint('Adjusted Position: $adjustedPosition');
 
-    final double gridWidth = gridRenderBox.size.width;
-    final double gridHeight = gridRenderBox.size.height;
+    if (!expandedRenderBox.paintBounds.contains(adjustedPosition)) {
+      debugPrint('Adjusted Position outside Expanded paint bounds.');
+      return null;
+    }
+
+    final double gridWidth = expandedRenderBox.size.width;
+    final double gridHeight = expandedRenderBox.size.height;
 
     debugPrint('Grid Size: $gridWidth x $gridHeight');
 
@@ -568,5 +627,16 @@ class _GameGridScreenState extends State<GameGridScreen> {
   bool isAdjacent(int row1, int col1, int row2, int col2) {
     return (row1 == row2 && (col1 == col2 + 1 || col1 == col2 - 1)) ||
            (col1 == col2 && (row1 == row2 + 1 || row1 == row2 - 1));
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+      if (_isMuted) {
+        _backgroundPlayer.pause();
+      } else {
+        _backgroundPlayer.resume();
+      }
+    });
   }
 } 
