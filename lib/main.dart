@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:color_splice/screens/splash_screen.dart';
+import 'package:capico_slice/screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());

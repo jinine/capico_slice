@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:color_splice/screens/home_screen.dart';
+import 'package:capico_slice/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

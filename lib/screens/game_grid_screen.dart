@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:color_splice/game/components/character.dart'; // Import CharacterType
+import 'package:capico_slice/game/components/character.dart'; // Import CharacterType
 import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart'; // Import for HapticFeedback

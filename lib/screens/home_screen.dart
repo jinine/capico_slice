@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:color_splice/screens/game_grid_screen.dart';
+import 'package:capico_slice/screens/game_grid_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
